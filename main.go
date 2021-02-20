@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -32,8 +33,14 @@ func main() {
 	http.HandleFunc("/", httpHello)
 	http.HandleFunc("/ws", wsHandler)
 
-	fmt.Printf("Starting server at port 80\n")
-	if err := http.ListenAndServe(":80", nil); err != nil {
+	port := os.Getenv("PORT")
+
+	if port == "" {
+		port = "80"
+	}
+
+	log.Println("Starting server at port " + port)
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatal(err)
 	}
 }
