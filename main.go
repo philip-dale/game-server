@@ -32,8 +32,8 @@ func main() {
 	http.HandleFunc("/", httpHello)
 	http.HandleFunc("/ws", wsHandler)
 
-	fmt.Printf("Starting server at port 50000\n")
-	if err := http.ListenAndServe(":50000", nil); err != nil {
+	fmt.Printf("Starting server at port 80\n")
+	if err := http.ListenAndServe(":80", nil); err != nil {
 		log.Fatal(err)
 	}
 }
