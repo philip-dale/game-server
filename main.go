@@ -29,12 +29,17 @@ func main() {
 	games.BuzzerGame.Init(adminId)
 	log.Println("Admin Server Id = " + adminId)
 
+	http.HandleFunc("/", httpHello)
 	http.HandleFunc("/ws", wsHandler)
 
 	fmt.Printf("Starting server at port 50000\n")
 	if err := http.ListenAndServe(":50000", nil); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func httpHello(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "game-server running")
 }
 
 var upgrader = websocket.Upgrader{
