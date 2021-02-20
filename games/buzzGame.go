@@ -5,6 +5,7 @@ import (
 	"errors"
 	"game-server/messages"
 	"game-server/users"
+	"log"
 	"math/rand"
 	"sync"
 
@@ -106,6 +107,7 @@ func (b *BuzzGameInfo) DisableUser(uid int32) error {
 	b.BuzzStatus[i].UserInfo.Active = false
 	b.lock.Unlock()
 	b.sendGameUpdate()
+	log.Println("Disabled User " + b.BuzzStatus[i].UserInfo.PlayerName)
 	return nil
 }
 

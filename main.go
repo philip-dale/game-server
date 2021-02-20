@@ -87,8 +87,10 @@ func sendJSON(conn *websocket.Conn, v interface{}) {
 func userManager(conn *websocket.Conn, uid int32, gameStatus games.Game) {
 	connectionClosed := false
 	conn.SetCloseHandler(func(code int, text string) error {
+		log.Println("Closed Connection for " + strconv.Itoa(int(uid)))
+		err := gameStatus.DisableUser(uid)
 		connectionClosed = true
-		return gameStatus.DisableUser(uid)
+		return err
 	})
 
 	readChan := make(chan []byte, 1)
