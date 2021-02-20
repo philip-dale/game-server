@@ -53,7 +53,7 @@ func (b *BuzzGameInfo) AddUser(data messages.InitMessage, conn *websocket.Conn) 
 	_, err := b.findIndex(data.UserId)
 	if err == nil {
 		b.lock.Unlock()
-		b.EnableUser(data.UserId)
+		b.EnableUser(data.UserId, conn)
 		return data.UserId
 	}
 	// else add a new user
@@ -74,7 +74,7 @@ func (b *BuzzGameInfo) AddUser(data messages.InitMessage, conn *websocket.Conn) 
 	return uid
 }
 
-func (b *BuzzGameInfo) EnableUser(uid int32) error {
+func (b *BuzzGameInfo) EnableUser(uid int32, conn *websocket.Conn) error {
 	b.lock.Lock()
 
 	i, err := b.findIndex(uid)
@@ -84,6 +84,11 @@ func (b *BuzzGameInfo) EnableUser(uid int32) error {
 	}
 
 	b.BuzzStatus[i].UserInfo.Active = true
+	b.BuzzStatus[i].BuzzStatus.Buzzing = false
+	b.BuzzStatus[i].BuzzStatus.LockedOut = false
+	b.BuzzStatus[i].sendChan = make(chan interface{}, 4)
+	b.BuzzStatus[i].conn = conn
+
 	b.lock.Unlock()
 	b.sendGameUpdate()
 	return nil

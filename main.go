@@ -95,7 +95,7 @@ func userManager(conn *websocket.Conn, uid int32, gameStatus games.Game) {
 	go func() {
 		readMessage(conn, readChan)
 	}()
-	for {
+	for connectionClosed == false {
 		select {
 		case message := <-readChan:
 			gameStatus.ProcessMessage(message)
