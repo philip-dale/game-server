@@ -1,0 +1,22 @@
+C : initMessage 
+S : errorMessage | connectedMessage
+
+C : BuzzGameStatusMessage
+C : BuzzPlayerStatusMessage
+
+S : BuzzActionMessage
+
+
+initMessage = {MessageType=0, UserId=0, ServerId, PlayerName, GameType}
+connectedMessage = {MessageType=1, UserId}
+
+errorMessage = {MessageType=2, MessageText}
+
+BuzzGame Messages
+GameStatusMessage = {MessageType=3, Status=[{UserInfo{PlayerName, Active}, BuzzStatus{Buzzing, LockedOut, score}} ...]}
+PlayerStatusMessage = {MessageType=4, Buzzing, LockedOut, Score }
+BuzzActionMessage = {MessageType=5, UserId, Buzzing}
+
+adminMessage = {MessageType=6, AdminId, Command}
+
+quitMessage = {MessageType=7, UserId}
