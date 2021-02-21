@@ -55,6 +55,10 @@ type QuitMessage struct {
 	UserId      int32
 }
 
+type PingPongMessage struct {
+	MessageType int32
+}
+
 const (
 	InitMessageType         = iota
 	ConnectedMessageType    = iota
@@ -65,6 +69,8 @@ const (
 	AdminMessageType        = iota
 	QuitMessageType         = iota
 	KickPlayerMessageType   = iota
+	PingMessageType         = iota
+	PongMessageType         = iota
 )
 
 func CreateErrorMessage(text string) ErrorMessage {
@@ -81,4 +87,8 @@ func CreateGameStatusMessage(status interface{}) GameStatusMessage {
 
 func CreatePlayerStatusMessage(status interface{}) PlayerStatusMessage {
 	return PlayerStatusMessage{MessageType: PlayerStatusMessageType, Status: status}
+}
+
+func CreatePingMessage() PingPongMessage {
+	return PingPongMessage{MessageType: PingMessageType}
 }

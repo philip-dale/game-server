@@ -106,6 +106,12 @@ func userManager(conn *websocket.Conn, uid int32, gameStatus games.Game) {
 				return
 			}
 			sendJSON(conn, &status)
+		case <-time.After(time.Second * 30):
+			pingMessage := messages.CreatePingMessage()
+			if connectionClosed {
+				return
+			}
+			sendJSON(conn, &pingMessage)
 		}
 	}
 }
