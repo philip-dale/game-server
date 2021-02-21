@@ -76,12 +76,12 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	userManager(conn, uid, gameStatus)
 }
 
-func sendJSON(conn *websocket.Conn, v interface{}) {
+func sendJSON(conn *websocket.Conn, v interface{}) error {
 	if err := conn.WriteJSON(v); err != nil {
 		log.Println(err)
-		conn.Close()
-		return
+		return err
 	}
+	return nil
 }
 
 func userManager(conn *websocket.Conn, uid int32, gameStatus games.Game) {
@@ -105,13 +105,23 @@ func userManager(conn *websocket.Conn, uid int32, gameStatus games.Game) {
 			if connectionClosed {
 				return
 			}
-			sendJSON(conn, &status)
+			err := sendJSON(conn, &status)
+			if err != nil {
+				conn.Close()
+				connectionClosed = true
+				return
+			}
 		case <-time.After(time.Second * 30):
 			pingMessage := messages.CreatePingMessage()
 			if connectionClosed {
 				return
 			}
-			sendJSON(conn, &pingMessage)
+			err := sendJSON(conn, &pingMessage)
+			if err != nil {
+				conn.Close()
+				connectionClosed = true
+				return
+			}
 		}
 	}
 }

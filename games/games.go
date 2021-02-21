@@ -15,7 +15,7 @@ var BuzzerGame BuzzGameInfo
 
 type Game interface {
 	AddUser(data messages.InitMessage, conn *websocket.Conn) int32
-	EnableUser(uid int32, conn *websocket.Conn) error
+	EnableUser(data messages.InitMessage, conn *websocket.Conn) error
 	DisableUser(uid int32) error
 	RemoveUser(uid int32) error
 	ProcessMessage(message []byte)
