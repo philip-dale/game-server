@@ -8,6 +8,7 @@ import (
 	"log"
 	"math/rand"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -31,6 +32,9 @@ type BuzzGameInfo struct {
 	BuzzStatus      []BuzzInfo
 	lock            sync.Mutex
 	adminId         string
+	randSource      rand.Source
+	randGen         *rand.Rand
+	randSetup       bool
 }
 
 func (b *BuzzGameInfo) Init(adminId string) {
@@ -59,7 +63,12 @@ func (b *BuzzGameInfo) AddUser(data messages.InitMessage, conn *websocket.Conn) 
 	}
 	// else add a new user
 
-	uid := rand.Int31()
+	if b.randSetup == false {
+		b.randSource = rand.NewSource(time.Now().UnixNano())
+		b.randGen = rand.New(b.randSource)
+	}
+
+	uid := b.randGen.Int31()
 	b.BuzzStatus = append(b.BuzzStatus, BuzzInfo{
 		UserInfo: users.UserInfo{PlayerName: data.PlayerName, Active: true, UserId: uid},
 		BuzzStatus: BuzzStatus{
