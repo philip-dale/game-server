@@ -202,7 +202,7 @@ func (b *BuzzGameInfo) processAdmin(message []byte) {
 
 	b.lock.Lock()
 	switch admin.Command {
-	case 0: // correct
+	case 0:
 		if b.playerBuzzing {
 			i, err := b.findIndex(b.buzzingPlayerId)
 			if err != nil {
@@ -228,6 +228,13 @@ func (b *BuzzGameInfo) processAdmin(message []byte) {
 		b.nextRound()
 	case 3:
 		b.reset()
+	case 4:
+		i, err := b.findIndex(b.buzzingPlayerId)
+		if err != nil {
+			b.lock.Unlock()
+			return
+		}
+		b.clearBuzz(i)
 	}
 
 	b.lock.Unlock()
