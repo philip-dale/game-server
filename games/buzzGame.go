@@ -54,11 +54,10 @@ func (b *BuzzGameInfo) findIndex(uid int32) (int, error) {
 
 func (b *BuzzGameInfo) AddUser(data messages.InitMessage, conn *websocket.Conn) int32 {
 	b.lock.Lock()
-
+	defer b.lock.Unlock()
 	_, err := b.findIndex(data.UserId)
 	if err == nil {
-		b.lock.Unlock()
-		b.EnableUser(data, conn)
+		b.enableUser(data, conn)
 		return data.UserId
 	}
 	// else add a new user
@@ -76,66 +75,61 @@ func (b *BuzzGameInfo) AddUser(data messages.InitMessage, conn *websocket.Conn) 
 			LockedOut: false,
 			Score:     0,
 		},
-		sendChan: make(chan interface{}, 4),
+		sendChan: make(chan interface{}, 20),
 		conn:     conn,
 	})
-	b.lock.Unlock()
 	b.sendGameUpdate()
+	log.Println("added User " + data.PlayerName)
 	return uid
 }
 
-func (b *BuzzGameInfo) EnableUser(data messages.InitMessage, conn *websocket.Conn) error {
-	b.lock.Lock()
-
+func (b *BuzzGameInfo) enableUser(data messages.InitMessage, conn *websocket.Conn) error {
 	i, err := b.findIndex(data.UserId)
 	if err != nil {
-		b.lock.Unlock()
 		return err
 	}
 	b.BuzzStatus[i].UserInfo.PlayerName = data.PlayerName
 	b.BuzzStatus[i].UserInfo.Active = true
 	b.BuzzStatus[i].BuzzStatus.Buzzing = false
 	b.BuzzStatus[i].BuzzStatus.LockedOut = false
-	b.BuzzStatus[i].sendChan = make(chan interface{}, 4)
+	b.BuzzStatus[i].sendChan = make(chan interface{}, 20)
 	b.BuzzStatus[i].conn = conn
-
-	b.lock.Unlock()
+	log.Println("Re enabled User " + b.BuzzStatus[i].UserInfo.PlayerName)
 	b.sendGameUpdate()
 	return nil
 }
 
 func (b *BuzzGameInfo) DisableUser(uid int32) error {
 	b.lock.Lock()
-
+	defer b.lock.Unlock()
 	i, err := b.findIndex(uid)
 	if err != nil {
-		b.lock.Unlock()
 		return err
 	}
 
 	b.BuzzStatus[i].UserInfo.Active = false
-	b.lock.Unlock()
 	b.sendGameUpdate()
 	log.Println("Disabled User " + b.BuzzStatus[i].UserInfo.PlayerName)
 	return nil
 }
 
-func (b *BuzzGameInfo) RemoveUser(uid int32) error {
-	b.lock.Lock()
+func (b *BuzzGameInfo) removeUser(uid int32) error {
 	i, err := b.findIndex(uid)
 	if err != nil {
-		b.lock.Unlock()
 		return err
 	}
 	b.BuzzStatus[i].conn.Close()
+	log.Println("Removing User " + b.BuzzStatus[i].UserInfo.PlayerName)
 	b.BuzzStatus = append(b.BuzzStatus[:i], b.BuzzStatus[i+1:]...)
 
-	b.lock.Unlock()
 	b.sendGameUpdate()
+
 	return nil
 }
 
 func (b *BuzzGameInfo) ProcessMessage(message []byte) {
+	b.lock.Lock()
+	defer b.lock.Unlock()
 
 	var m messages.BaseMessage
 	if err := json.Unmarshal(message, &m); err != nil {
@@ -159,12 +153,10 @@ func (b *BuzzGameInfo) processAction(message []byte) {
 	if err := json.Unmarshal(message, &action); err != nil {
 		return
 	}
-	b.lock.Lock()
 	if action.Buzzing {
 		if !b.playerBuzzing {
 			i, err := b.findIndex(action.UserId)
 			if err != nil {
-				b.lock.Unlock()
 				return
 			}
 			if !b.BuzzStatus[i].BuzzStatus.LockedOut {
@@ -174,7 +166,6 @@ func (b *BuzzGameInfo) processAction(message []byte) {
 			}
 		}
 	}
-	b.lock.Unlock()
 	b.sendGameUpdate()
 }
 
@@ -183,7 +174,7 @@ func (b *BuzzGameInfo) processQuit(message []byte) {
 	if err := json.Unmarshal(message, &m); err != nil {
 		return
 	}
-	b.RemoveUser(m.UserId)
+	b.removeUser(m.UserId)
 }
 
 func (b *BuzzGameInfo) processKick(message []byte) {
@@ -196,7 +187,7 @@ func (b *BuzzGameInfo) processKick(message []byte) {
 		return
 	}
 
-	b.RemoveUser(kick.UserId)
+	b.removeUser(kick.UserId)
 }
 
 func (b *BuzzGameInfo) processAdmin(message []byte) {
@@ -209,13 +200,11 @@ func (b *BuzzGameInfo) processAdmin(message []byte) {
 		return
 	}
 
-	b.lock.Lock()
 	switch admin.Command {
 	case 0:
 		if b.playerBuzzing {
 			i, err := b.findIndex(b.buzzingPlayerId)
 			if err != nil {
-				b.lock.Unlock()
 				return
 			}
 			b.BuzzStatus[i].BuzzStatus.Score += 1
@@ -227,7 +216,6 @@ func (b *BuzzGameInfo) processAdmin(message []byte) {
 		if b.playerBuzzing {
 			i, err := b.findIndex(b.buzzingPlayerId)
 			if err != nil {
-				b.lock.Unlock()
 				return
 			}
 			b.BuzzStatus[i].BuzzStatus.LockedOut = true
@@ -240,13 +228,11 @@ func (b *BuzzGameInfo) processAdmin(message []byte) {
 	case 4:
 		i, err := b.findIndex(b.buzzingPlayerId)
 		if err != nil {
-			b.lock.Unlock()
 			return
 		}
 		b.clearBuzz(i)
 	}
 
-	b.lock.Unlock()
 	b.sendGameUpdate()
 }
 
@@ -284,22 +270,19 @@ func (b *BuzzGameInfo) sendGameUpdate() {
 
 func (b *BuzzGameInfo) sendPlayerUpdate(uid int32) {
 
-	b.lock.Lock()
 	i, err := b.findIndex(uid)
 
 	if err != nil {
-		b.lock.Unlock()
 		return
 	}
-
 	b.BuzzStatus[i].sendChan <- messages.CreatePlayerStatusMessage(b.BuzzStatus[i].BuzzStatus)
-	b.lock.Unlock()
 }
 
 func (b *BuzzGameInfo) GetSendChannel(uid int32) chan interface{} {
 	b.lock.Lock()
+	defer b.lock.Unlock()
+
 	i, err := b.findIndex(uid)
-	b.lock.Unlock()
 	if err != nil {
 		return nil
 	}
